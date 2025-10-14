@@ -1,0 +1,5 @@
+{
+  "weekday_3for2": { "enabled": false },
+  "flat_percent":  { "enabled": false, "value": 0 },
+  "weekday_percent": { "enabled": false, "value": 0 }
+}
