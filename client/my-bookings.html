@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>My Bookings</title><link rel="stylesheet" href="./static/styles.css"/></head>
+<body>
+<header class="site-header"><div class="titles"><h1>My Bookings</h1><p class="subtitle">Local test only</p></div><nav><a class="btn ghost" href="./">Back</a></nav></header>
+<main class="container"><section class="card"><div id="list"></div><div class="actions"><button id="btnCSV" class="btn">Export CSV</button></div></section></main>
+<script>
+function toCSV(rows){ return rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\\n'); }
+function dl(name,text){ const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(text); a.download=name; a.click(); }
+function render(){
+ const l = JSON.parse(localStorage.getItem('bookings')||'[]'); const wrap = document.getElementById('list'); if (!l.length){ wrap.innerHTML='<p class="muted">No test bookings.</p>'; return; }
+ wrap.innerHTML = l.map((b,i)=>`<div class="room"><div><strong>#${i+1}</strong> • ${new Date(b.ts).toLocaleString()}</div><div>${b.cart.map(it=> it.room.block+' '+it.room.room_no).join(', ')}</div></div>`).join('');
+ document.getElementById('btnCSV').onclick = ()=>{
+   const rows=[["idx","timestamp","rooms"]];
+   l.forEach((b,i)=> rows.push([i+1,new Date(b.ts).toISOString(), b.cart.map(it=> it.room.block+' '+it.room.room_no).join(' | ')]));
+   dl('my_bookings.csv', toCSV(rows));
+ };
+}
+document.addEventListener('DOMContentLoaded', render);
+</script>
+</body>
+</html>
