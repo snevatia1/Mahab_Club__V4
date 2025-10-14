@@ -1,0 +1,5 @@
+member_id,name,email,phone,category,dues
+M001,Arun Mehta,arun@example.com,9999999999,member,0
+M002,Sonal Patel,sonal@example.com,9999999998,senior,0
+M003,Vikram Shah,vikram@example.com,9999999997,member,1500
+G001,Guest User,guest@example.com,9999999996,guest,0
