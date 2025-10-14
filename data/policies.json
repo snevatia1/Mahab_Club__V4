@@ -1,0 +1,32 @@
+{
+  "test_mode": true,
+  "ui": { "months_per_view": 6 },
+  "auto_calendar": {
+    "enabled": true,
+    "months_forward": 6,
+    "weekend_days": [5, 6],
+    "defaults": { "season": "regular", "closed": false, "bbq": false }
+  },
+  "children": { "adult_age_min": 10, "child_min": 5, "child_max": 9 },
+  "group_rules": { "min_rooms": 8, "allowed_blocks": ["A", "C"], "weekdays_only": true },
+  "advance_window": { "individual_days": 180, "group_days": 180 },
+  "max_live_bookings": 2,
+  "payment": { "pay_url": "https://www.clubmahabaleshwar.net/pay" },
+  "weekend_days_note": "Dates are nights; weekends = Fri & Sat nights"
+}
+{
+  "test_mode": true,
+  "ui": { "months_per_view": 6 },
+  "auto_calendar": {
+    "enabled": true,
+    "months_forward": 6,
+    "weekend_days": [5, 6],
+    "defaults": { "season": "regular", "closed": false, "bbq": false }
+  },
+  "children": { "adult_age_min": 10, "child_min": 5, "child_max": 9 },
+  "group_rules": { "min_rooms": 8, "allowed_blocks": ["A", "C"], "weekdays_only": true },
+  "advance_window": { "individual_days": 180, "group_days": 180 },
+  "max_live_bookings": 2,
+  "payment": { "pay_url": "https://www.clubmahabaleshwar.net/pay" },
+  "weekend_days_note": "Dates are nights; weekends = Fri & Sat nights"
+}
