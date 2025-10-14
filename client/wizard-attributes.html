@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Wizard B – Choose Attributes First</title>
+  <link rel="stylesheet" href="./static/styles.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="titles">
+    <h1>Wizard B — Attributes First</h1>
+    <p class="subtitle">Pick block/type/AC/view, then pick dates and complete booking</p>
+  </div>
+  <nav>
+    <a class="btn ghost" href="./">Wizard A (Dates first)</a>
+    <a class="btn ghost" href="./assistant.html">Assistant</a>
+  </nav>
+</header>
+
+<main class="container">
+  <section class="card">
+    <div class="grid two">
+      <div>
+        <label>Block</label>
+        <select id="fBlock">
+          <option value="">Any</option><option>A</option><option>B</option><option>C</option><option>D</option>
+        </select>
+      </div>
+      <div>
+        <label>Type</label>
+        <select id="fType">
+          <option value="">Any</option><option>single</option><option>double</option><option>triple</option><option>quad</option>
+        </select>
+      </div>
+      <div>
+        <label>AC</label>
+        <select id="fAC">
+          <option value="">Any</option><option value="true">AC</option><option value="false">Non-AC</option>
+        </select>
+      </div>
+      <div>
+        <label>View</label>
+        <select id="fView">
+          <option value="">Any</option><option>garden</option><option>valley</option>
+        </select>
+      </div>
+    </div>
+    <div class="actions" style="margin-top:.5rem">
+      <button class="btn" id="btnFilter">Show matching rooms</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h3>Matching rooms</h3>
+    <div id="match"></div>
+  </section>
+
+  <section class="card">
+    <h3>Pick dates</h3>
+    <div class="muted">Tap a start date, then an end date. Use month chips to jump.</div>
+    <div id="monthChips" class="chips"></div>
+    <div id="calendarWrap" class="calendar"></div>
+    <div class="grid three" style="margin-top:.5rem">
+      <div><label>Check-in</label><div id="lblCI" class="badge">—</div></div>
+      <div><label>Check-out</label><div id="lblCO" class="badge">—</div></div>
+      <div class="actions"><label>&nbsp;</label><button id="btnQuote" class="btn">Quote & Add</button></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h3>Your selection</h3>
+    <div id="cart"></div>
+    <div id="payWrap" style="display:none;margin-top:8px">
+      <button id="btnPay" class="btn">Proceed to Payment</button>
+      <a class="btn ghost" href="./my-bookings.html">My Bookings</a>
+    </div>
+  </section>
+</main>
+
+<script src="./static/wizard-attributes.js"></script>
+</body>
+</html>
