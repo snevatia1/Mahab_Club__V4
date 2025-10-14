@@ -1,0 +1,10 @@
+{
+  "base": {
+    "member":  { "single": 2000, "double": 3500, "triple": 4500, "quad": 5200 },
+    "senior":  { "single": 1800, "double": 3200, "triple": 4200, "quad": 4900 },
+    "guest":   { "single": 2600, "double": 4200, "triple": 5200, "quad": 5900 }
+  },
+  "multipliers": { "weekend": 1.15, "diwali": 1.4, "new_year": 1.5, "regular": 1.0 },
+  "extras": { "extra_bed": 700, "child_5_9": 300, "bbq_pp": 600 },
+  "tax": { "gst_pct": 12 }
+}
