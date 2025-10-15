@@ -6,12 +6,32 @@
   <title>Wizard B – Choose Attributes First</title>
   <link rel="stylesheet" href="./static/styles.css"/>
   <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+  <style>
+    .calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:.5rem}
+    .cal-cell{padding:.45rem;border:1px solid #e5e7eb;border-radius:.5rem;text-align:center;cursor:pointer;background:#fff}
+    .cal-cell.sel{outline:2px solid #111827}
+    .chips{display:flex;flex-wrap:wrap;gap:.4rem;margin:.4rem 0}
+    .chip{padding:.25rem .5rem;border:1px solid #e5e7eb;border-radius:999px;background:#fff;cursor:pointer}
+    .badge{display:inline-block;padding:.25rem .5rem;border-radius:.5rem;background:#f3f4f6}
+    .table{width:100%;border-collapse:collapse}
+    .table td,.table th{border-bottom:1px solid #eee;padding:.4rem .5rem}
+    .muted{color:#6b7280}
+    .grid.two{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+    .grid.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem}
+    .grid.four{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem}
+    @media (max-width:900px){.grid.two,.grid.three,.grid.four{grid-template-columns:1fr}}
+    .pill{display:inline-block;padding:.2rem .45rem;border:1px solid #eee;border-radius:.6rem;margin:.1rem;background:#fff}
+    .card{background:#fff;border:1px solid #e5e7eb;border-radius:.75rem;padding:.9rem;margin:.8rem 0}
+    .btn{cursor:pointer}
+    input[type="number"]{width:100%}
+    select, input[type="date"], input[type="number"] {width:100%;padding:.45rem;border:1px solid #e5e7eb;border-radius:.5rem}
+  </style>
 </head>
 <body>
 <header class="site-header">
   <div class="titles">
     <h1>Wizard B — Attributes First</h1>
-    <p class="subtitle">Pick block/type/AC/view, then pick dates and complete booking</p>
+    <p class="subtitle">Pick attributes, then dates and complete booking</p>
   </div>
   <nav>
     <a class="btn ghost" href="./">Wizard A (Dates first)</a>
@@ -20,30 +40,57 @@
 </header>
 
 <main class="container">
+  <!-- FILTERS -->
   <section class="card">
-    <div class="grid two">
+    <h3>Filters</h3>
+    <div class="grid.four">
       <div>
-        <label>Block</label>
-        <select id="fBlock">
-          <option value="">Any</option><option>A</option><option>B</option><option>C</option><option>D</option>
-        </select>
+        <label>Block / Wing</label>
+        <select id="fBlock"><option value="">Any</option></select>
       </div>
       <div>
         <label>Type</label>
         <select id="fType">
-          <option value="">Any</option><option>single</option><option>double</option><option>triple</option><option>quad</option>
+          <option value="">Any</option>
+          <option>single</option><option>double</option><option>triple</option><option>quad</option>
         </select>
       </div>
       <div>
         <label>AC</label>
         <select id="fAC">
-          <option value="">Any</option><option value="true">AC</option><option value="false">Non-AC</option>
+          <option value="">Any</option>
+          <option value="true">AC</option>
+          <option value="false">Non-AC</option>
         </select>
       </div>
       <div>
         <label>View</label>
-        <select id="fView">
-          <option value="">Any</option><option>garden</option><option>valley</option>
+        <select id="fView"><option value="">Any</option></select>
+      </div>
+      <div>
+        <label>Wheelchair</label>
+        <select id="fWheel"><option value="">Any</option><option>true</option><option>false</option></select>
+      </div>
+      <div>
+        <label>Pet Friendly</label>
+        <select id="fPet"><option value="">Any</option><option>true</option><option>false</option></select>
+      </div>
+      <div>
+        <label>Floor</label>
+        <select id="fFloor"><option value="">Any</option></select>
+      </div>
+      <div>
+        <label>Bed</label>
+        <select id="fBed"><option value="">Any</option></select>
+      </div>
+      <div>
+        <label>Guests</label>
+        <input id="fGuests" type="number" min="1" value="2"/>
+      </div>
+      <div>
+        <label>Member Type</label>
+        <select id="fMember">
+          <option>member</option><option>senior</option><option>guest</option>
         </select>
       </div>
     </div>
@@ -52,11 +99,13 @@
     </div>
   </section>
 
+  <!-- MATCHING ROOMS -->
   <section class="card">
     <h3>Matching rooms</h3>
     <div id="match"></div>
   </section>
 
+  <!-- DATES -->
   <section class="card">
     <h3>Pick dates</h3>
     <div class="muted">Tap a start date, then an end date. Use month chips to jump.</div>
@@ -69,6 +118,7 @@
     </div>
   </section>
 
+  <!-- CART -->
   <section class="card">
     <h3>Your selection</h3>
     <div id="cart"></div>
@@ -79,6 +129,295 @@
   </section>
 </main>
 
-<script src="./static/wizard-attributes.js"></script>
+<script>
+(async function(){
+  // --- Helpers
+  const $ = s => document.querySelector(s);
+  const matchEl = $('#match'), cartEl = $('#cart'), payWrap = $('#payWrap');
+  let ROOMS=[], COLS=[], TARIFF=null, POLICY=null;
+  let sel = { room: null, dates: {ci:null, co:null}, guests: 2, memberType:'member' };
+
+  async function loadJSON(path) {
+    // try ./data first, fallback to current dir
+    for (const p of [ './data/'+path, './'+path ]) {
+      try { const r = await fetch(p); if (r.ok) return await r.json(); } catch(e){}
+    }
+    throw new Error('Cannot load '+path);
+  }
+
+  // Load data
+  const roomsJ = await loadJSON('rooms.json');
+  ROOMS = roomsJ.room_classes || [];
+  COLS = roomsJ.columns || Object.keys(ROOMS[0]||{});
+  const tariffs = await loadJSON('tariffs.json');
+  TARIFF = tariffs.base;
+  POLICY = tariffs.policy || { single_in_double_factor: 0.8, weekend_days:['Fri','Sat'] };
+
+  // Detect likely columns (using the exact headings you supplied)
+  function findCol(cands){
+    const lc = new Map(COLS.map(c=>[c.toLowerCase().trim(),c]));
+    for (const k of cands){ const f = lc.get(k.toLowerCase()); if (f) return f; }
+    // contains fallback
+    for (const c of COLS){
+      const l = c.toLowerCase();
+      if (cands.some(k=>l.includes(k.toLowerCase()))) return c;
+    }
+    return null;
+  }
+  const cBlock = findCol(['block','wing']);
+  const cType = findCol(['type','room type','category','class']);
+  const cAC   = findCol(['ac','air conditioning']);
+  const cView = findCol(['view','valley','garden']);
+  const cWheel= findCol(['wheelchair','accessible','wheel chair']);
+  const cPet  = findCol(['pet','pet friendly']);
+  const cFloor= findCol(['floor','level']);
+  const cBed  = findCol(['bed','bed type']);
+  const cMin  = findCol(['min occupancy','minimum','min pax','min persons']);
+  const cMax  = findCol(['max occupancy','maximum','max pax','max persons']);
+
+  // Populate filter dropdowns from data
+  function uniqValues(col){
+    if (!col) return [];
+    const s = new Set();
+    for (const r of ROOMS){
+      const v = r[col];
+      if (v!==undefined && v!==null && (''+v).trim()!=='') s.add((''+v).trim());
+    }
+    return Array.from(s).sort((a,b)=>(''+a).localeCompare(''+b,undefined,{numeric:true}));
+  }
+  function fill(selId, values){
+    const el = $(selId);
+    if (!el || !values) return;
+    const opts = ['<option value="">Any</option>'].concat(values.map(v=>`<option>${v}</option>`)).join('');
+    el.innerHTML = opts;
+  }
+  fill('#fBlock', uniqValues(cBlock));
+  fill('#fView',  uniqValues(cView));
+  fill('#fFloor', uniqValues(cFloor));
+  fill('#fBed',   uniqValues(cBed));
+
+  // Filtering
+  function getFilters(){
+    return {
+      block: $('#fBlock').value.trim(),
+      type:  $('#fType').value.trim(),
+      ac:    $('#fAC').value.trim(),
+      view:  $('#fView').value.trim(),
+      wheel: $('#fWheel').value.trim(),
+      pet:   $('#fPet').value.trim(),
+      floor: $('#fFloor').value.trim(),
+      bed:   $('#fBed').value.trim(),
+      guests: Math.max(1, parseInt($('#fGuests').value||'2',10)),
+      memberType: $('#fMember').value.trim()
+    };
+  }
+
+  function passes(r, f){
+    function eq(col, val){
+      if (!val) return true;
+      if (!col) return true;
+      const rv = r[col]; if (rv===undefined||rv===null) return false;
+      return (''+rv).toLowerCase() === val.toLowerCase();
+    }
+    function boolMatch(col, val){
+      if (!val) return true;
+      if (!col) return true;
+      const rv = (''+r[col]).toLowerCase();
+      return (val==='true' ? ['true','1','yes','y'].includes(rv) : ['false','0','no','n'].includes(rv));
+    }
+    return eq(cBlock,f.block) && eq(cType,f.type) && eq(cView,f.view) && eq(cFloor,f.floor) && eq(cBed,f.bed)
+           && (f.ac ? boolMatch(cAC,f.ac) : true)
+           && (f.wheel ? boolMatch(cWheel,f.wheel) : true)
+           && (f.pet ? boolMatch(cPet,f.pet) : true);
+  }
+
+  function renderMatches(list, guests){
+    if (!list.length){ matchEl.innerHTML = '<div class="muted">No rooms match these filters.</div>'; return; }
+    const rows = list.map((r,i)=>{
+      const min = cMin ? (parseInt(r[cMin])||1) : 1;
+      const max = cMax ? (parseInt(r[cMax])||4) : 4;
+      const pills = [];
+      if (cAC)    pills.push(`<span class="pill">${r[cAC]?'AC':'Non-AC'}</span>`);
+      if (cView)  pills.push(`<span class="pill">${r[cView]}</span>`);
+      if (cFloor) pills.push(`<span class="pill">Floor ${r[cFloor]}</span>`);
+      if (cBed)   pills.push(`<span class="pill">${r[cBed]}</span>`);
+      if (cWheel) pills.push(`<span class="pill">${(r[cWheel]+'').toLowerCase()==='true'?'Wheelchair':''}</span>`);
+      if (cPet)   pills.push(`<span class="pill">${(r[cPet]+'').toLowerCase()==='true'?'Pet OK':''}</span>`);
+      const typ = cType ? (r[cType]||'') : '';
+      return `
+        <tr>
+          <td>${cBlock? (r[cBlock]||'—'):'—'}</td>
+          <td>${typ||'—'}<div class="muted">Min ${min}, Max ${max}</div></td>
+          <td>${pills.filter(x=>x).join(' ')||'—'}</td>
+          <td class="actions"><button class="btn" data-idx="${i}">Select</button></td>
+        </tr>`;
+    }).join('');
+    matchEl.innerHTML = `
+      <table class="table">
+        <thead><tr><th>Block/Wing</th><th>Type & Occupancy</th><th>Attributes</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+    matchEl.querySelectorAll('button[data-idx]').forEach(b=>{
+      b.onclick = ()=>{
+        const idx = parseInt(b.getAttribute('data-idx'),10);
+        sel.room = list[idx];
+        sel.guests = guests;
+        renderCart();
+      };
+    });
+  }
+
+  $('#btnFilter').onclick = ()=>{
+    const f = getFilters();
+    const list = ROOMS.filter(r=>passes(r,f));
+    sel.memberType = f.memberType;
+    renderMatches(list, f.guests);
+  };
+
+  // Calendar (simple, current month + next 5)
+  const chips = $('#monthChips'), cal = $('#calendarWrap');
+  let baseMonth = dayjs().startOf('month');
+  for (let i=0;i<6;i++){
+    const m = baseMonth.add(i,'month');
+    const chip = document.createElement('div');
+    chip.className='chip'; chip.textContent = m.format('MMM YYYY');
+    chip.onclick = ()=>buildMonth(m);
+    chips.appendChild(chip);
+  }
+  let pickA=null, pickB=null;
+  function buildMonth(monthStart){
+    cal.innerHTML='';
+    const startDow = monthStart.day();
+    const daysIn = monthStart.daysInMonth();
+    for (let i=0;i<startDow;i++){ const d=document.createElement('div'); cal.appendChild(d); }
+    for (let d=1; d<=daysIn; d++){
+      const cell = document.createElement('div');
+      cell.className='cal-cell'; cell.textContent = d;
+      cell.onclick = ()=>{
+        const date = monthStart.date(d);
+        if (!pickA || (pickA && pickB)){ pickA = date; pickB = null; }
+        else if (date.isBefore(pickA)){ pickB = pickA; pickA = date; }
+        else { pickB = date; }
+        renderPicks();
+      };
+      cal.appendChild(cell);
+    }
+  }
+  function renderPicks(){
+    $('#lblCI').textContent = pickA ? pickA.format('DD MMM YYYY') : '—';
+    $('#lblCO').textContent = pickB ? pickB.format('DD MMM YYYY') : '—';
+    const cells = cal.querySelectorAll('.cal-cell');
+    cells.forEach((c,idx)=>{
+      c.classList.remove('sel');
+      const d = idx+1 - dayjs(pickA).startOf('month').day();
+      // simple highlight on endpoints
+      if (pickA && c.textContent == pickA.date()) c.classList.add('sel');
+      if (pickB && c.textContent == pickB.date()) c.classList.add('sel');
+    });
+  }
+  buildMonth(baseMonth);
+
+  function nights(ci,co){ return Math.max(0, co.startOf('day').diff(ci.startOf('day'),'day')); }
+  function occupancyTier(guestCount){
+    if (guestCount<=1) return 'single';
+    if (guestCount==2) return 'double';
+    if (guestCount==3) return 'triple';
+    return 'quad';
+  }
+  function isWeekend(d){
+    const wd = d.format('ddd'); // Mon..Sun
+    return (POLICY.weekend_days||['Fri','Sat']).includes(wd);
+  }
+  function priceForStay(memberType, guestCount, roomRow, ci, co){
+    const n = nights(ci,co);
+    if (n<=0) return { subtotal:0, nights:0, lines:[] };
+    const min = cMin ? (parseInt(roomRow[cMin])||1) : 1;
+    const max = cMax ? (parseInt(roomRow[cMax])||4) : 4;
+    let lines=[];
+    let subtotal=0;
+    for (let i=0;i<n;i++){
+      const d = ci.add(i,'day');
+      // Season multiplier: weekend vs regular (festival hooks can be inserted here)
+      const mult = isWeekend(d) ? ( (window._tariffMultipliers && window._tariffMultipliers.weekend) || 1.15 ) : 1.0;
+
+      // Base logic
+      let base = 0;
+      if (guestCount===1 && min>=2){
+        // single in multi-occupancy room → factor x double
+        const dbl = TARIFF[memberType].double;
+        base = dbl * (POLICY.single_in_double_factor || 0.8);
+        lines.push({ date:d.format('DD-MMM'), desc:`Single in room (min ${min})`, base:Math.round(base), mult });
+      } else {
+        const tier = occupancyTier(Math.min(Math.max(guestCount,1),4));
+        base = TARIFF[memberType][tier];
+        lines.push({ date:d.format('DD-MMM'), desc:`${tier} base`, base, mult });
+      }
+      subtotal += base * mult;
+    }
+    return { subtotal: Math.round(subtotal), nights:n, lines };
+  }
+
+  function renderCart(){
+    if (!sel.room){ cartEl.innerHTML = '<div class="muted">Nothing selected yet.</div>'; payWrap.style.display='none'; return; }
+    const ci = sel.dates.ci, co = sel.dates.co;
+    const head = `
+      <div><strong>Room:</strong> ${cBlock? (sel.room[cBlock]||'—'):'—'} ${cType? ('• '+(sel.room[cType]||'')) : ''}</div>
+      <div class="muted">
+        ${cView? ('View: '+(sel.room[cView]||'—')+' • '):''}
+        Guests: ${sel.guests}
+      </div>`;
+    if (!ci || !co){
+      cartEl.innerHTML = head + `<div class="muted" style="margin-top:.25rem">Select dates to see price.</div>`;
+      payWrap.style.display='none';
+      return;
+    }
+    const pr = priceForStay(sel.memberType, sel.guests, sel.room, ci, co);
+    // GST
+    const gstPct = (window._gstPct || 12);
+    const gstAmt = Math.round(pr.subtotal * gstPct/100);
+    const total = pr.subtotal + gstAmt;
+    const lines = pr.lines.map(l=>`<tr><td>${l.date}</td><td>${l.desc}</td><td style="text-align:right">₹${Math.round(l.base)}</td><td style="text-align:right">× ${l.mult.toFixed(2)}</td></tr>`).join('');
+    cartEl.innerHTML = `
+      ${head}
+      <table class="table" style="margin-top:.5rem">
+        <thead><tr><th>Date</th><th>Desc</th><th style="text-align:right">Base</th><th style="text-align:right">Mult</th></tr></thead>
+        <tbody>${lines}</tbody>
+        <tfoot>
+          <tr><td colspan="3" style="text-align:right"><strong>Subtotal</strong></td><td style="text-align:right">₹${pr.subtotal}</td></tr>
+          <tr><td colspan="3" style="text-align:right">GST ${gstPct}%</td><td style="text-align:right">₹${gstAmt}</td></tr>
+          <tr><td colspan="3" style="text-align:right"><strong>Total</strong></td><td style="text-align:right"><strong>₹${total}</strong></td></tr>
+        </tfoot>
+      </table>`;
+    payWrap.style.display = 'block';
+  }
+
+  // Load multiplier & GST for client-side display helpers
+  window._tariffMultipliers = (await loadJSON('tariffs.json')).multipliers || { regular:1.0, weekend:1.15 };
+  window._gstPct = (await loadJSON('tariffs.json')).tax?.gst_pct || 12;
+
+  $('#btnQuote').onclick = ()=>{
+    if (!sel.room){ alert('Please select a room from Matching rooms.'); return; }
+    if (!pickA || !pickB){ alert('Please pick check-in and check-out.'); return; }
+    sel.dates.ci = pickA; sel.dates.co = pickB;
+    renderCart();
+  };
+
+  $('#btnPay').onclick = ()=>{
+    // Persist selection to localStorage for the rest of the app
+    const payload = {
+      room: sel.room,
+      guests: sel.guests,
+      memberType: sel.memberType,
+      ci: sel.dates.ci?.toISOString(),
+      co: sel.dates.co?.toISOString()
+    };
+    localStorage.setItem('bookingSelection', JSON.stringify(payload));
+    alert('Selection saved. Proceeding to payment gateway…');
+    // redirect hook (replace with your payment route)
+    // location.href = './pay.html';
+  };
+
+})();
+</script>
 </body>
 </html>
