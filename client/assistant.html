@@ -6,7 +6,18 @@
   <title>Booking Assistant – Club Mahabaleshwar</title>
   <link rel="stylesheet" href="./static/styles.css"/>
   <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
-  <style>.chat{border:1px solid #e5e7eb;border-radius:.75rem;padding:.5rem;min-height:240px;max-height:420px;overflow:auto;background:#fff}.msg{padding:.4rem .6rem;margin:.3rem 0;border-radius:.75rem;max-width:90%}</style>
+  <style>
+    .chat{border:1px solid #e5e7eb;border-radius:.75rem;padding:.5rem;min-height:240px;max-height:420px;overflow:auto;background:#fff}
+    .msg{padding:.4rem .6rem;margin:.3rem 0;border-radius:.75rem;max-width:90%}
+    .me{background:#eef2ff}
+    .bot{background:#f9fafb}
+    .pill{display:inline-block;padding:.2rem .45rem;border:1px solid #eee;border-radius:.6rem;margin:.1rem;background:#fff}
+    .table{width:100%;border-collapse:collapse}
+    .table td,.table th{border-bottom:1px solid #eee;padding:.4rem .5rem}
+    input,select{width:100%;padding:.45rem;border:1px solid #e5e7eb;border-radius:.5rem}
+    .grid.two{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+    .grid.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem}
+  </style>
 </head>
 <body>
 <header class="site-header">
@@ -33,10 +44,247 @@
       <div>
         <h3>Summary</h3>
         <div id="sum" class="table-wrap"></div>
+
+        <h3 style="margin-top:1rem">Quick Set</h3>
+        <div class="grid two">
+          <div>
+            <label>Member Type</label>
+            <select id="mType"><option>member</option><option>senior</option><option>guest</option></select>
+          </div>
+          <div>
+            <label>Guests</label>
+            <input id="mGuests" type="number" min="1" value="2"/>
+          </div>
+          <div>
+            <label>Check-in</label>
+            <input id="mCI" type="date"/>
+          </div>
+          <div>
+            <label>Check-out</label>
+            <input id="mCO" type="date"/>
+          </div>
+        </div>
+
+        <h3 style="margin-top:1rem">Attributes</h3>
+        <div class="grid two">
+          <div><label>Block/Wing</label><select id="aBlock"><option value="">Any</option></select></div>
+          <div><label>Type</label>
+            <select id="aType">
+              <option value="">Any</option>
+              <option>single</option><option>double</option><option>triple</option><option>quad</option>
+            </select>
+          </div>
+          <div><label>AC</label><select id="aAC"><option value="">Any</option><option value="true">AC</option><option value="false">Non-AC</option></select></div>
+          <div><label>View</label><select id="aView"><option value="">Any</option></select></div>
+          <div><label>Wheelchair</label><select id="aWheel"><option value="">Any</option><option>true</option><option>false</option></select></div>
+          <div><label>Pet Friendly</label><select id="aPet"><option value="">Any</option><option>true</option><option>false</option></select></div>
+          <div><label>Floor</label><select id="aFloor"><option value="">Any</option></select></div>
+          <div><label>Bed</label><select id="aBed"><option value="">Any</option></select></div>
+        </div>
+
+        <div class="actions" style="margin-top:.5rem">
+          <button id="btnSuggest" class="btn">Suggest Rooms</button>
+        </div>
+
+        <div id="suggestWrap" style="margin-top:.5rem"></div>
       </div>
     </div>
   </section>
 </main>
-<script src="./static/assistant.js"></script>
+
+<script>
+(async function(){
+  const $ = s => document.querySelector(s);
+  const chat = $('#chat'), status = $('#status'), sum = $('#sum'), suggestWrap = $('#suggestWrap');
+
+  function say(text, who='bot'){
+    const d = document.createElement('div'); d.className = 'msg '+who; d.textContent = text; chat.appendChild(d); chat.scrollTop = chat.scrollHeight;
+  }
+
+  async function loadJSON(path){
+    for (const p of [ './data/'+path, './'+path ]) {
+      try { const r = await fetch(p); if (r.ok) return await r.json(); } catch(e){}
+    }
+    throw new Error('Cannot load '+path);
+  }
+
+  // Load knowledge and rooms
+  let KNOW = null, ROOMS=[], COLS=[];
+  try {
+    KNOW = await loadJSON('assistant_knowledge.json').catch(()=>null);
+  } catch {}
+  const roomsJ = await loadJSON('rooms.json');
+  ROOMS = roomsJ.room_classes||[];
+  COLS  = roomsJ.columns||Object.keys(ROOMS[0]||{});
+
+  // Detect columns
+  function findCol(cands){
+    const lc = new Map(COLS.map(c=>[c.toLowerCase().trim(),c]));
+    for (const k of cands){ const f = lc.get(k.toLowerCase()); if (f) return f; }
+    for (const c of COLS){ const l=c.toLowerCase(); if (cands.some(k=>l.includes(k.toLowerCase()))) return c; }
+    return null;
+  }
+  const cBlock = findCol(['block','wing']);
+  const cType  = findCol(['type','room type','category','class']);
+  const cAC    = findCol(['ac','air conditioning']);
+  const cView  = findCol(['view','valley','garden']);
+  const cWheel = findCol(['wheelchair','accessible','wheel chair']);
+  const cPet   = findCol(['pet','pet friendly']);
+  const cFloor = findCol(['floor','level']);
+  const cBed   = findCol(['bed','bed type']);
+  const cMin   = findCol(['min occupancy','minimum','min pax','min persons']);
+  const cMax   = findCol(['max occupancy','maximum','max pax','max persons']);
+
+  function uniq(col){
+    if (!col) return [];
+    const s=new Set(); for (const r of ROOMS){ const v=r[col]; if (v!==undefined&&v!==null&&(''+v).trim()!=='') s.add((''+v).trim()); }
+    return Array.from(s).sort((a,b)=>(''+a).localeCompare(''+b,undefined,{numeric:true}));
+  }
+  function fill(id,vals){
+    const el=$(id); if (!el) return;
+    el.innerHTML = ['<option value="">Any</option>'].concat(vals.map(v=>`<option>${v}</option>`)).join('');
+  }
+  fill('#aBlock', uniq(cBlock));
+  fill('#aView',  uniq(cView));
+  fill('#aFloor', uniq(cFloor));
+  fill('#aBed',   uniq(cBed));
+
+  // Simple NLP-ish keyword matching (no external AI needed here)
+  function parse(text){
+    const obj = JSON.parse(localStorage.getItem('assistantDraft')||'{}');
+    const t = text.toLowerCase();
+    if (/member|senior|guest/.test(t)){
+      if (t.includes('senior')) obj.memberType='senior';
+      else if (t.includes('guest')) obj.memberType='guest';
+      else obj.memberType='member';
+    }
+    const g = t.match(/(\d+)\s*(guests|people|pax|persons?)/);
+    if (g) obj.guests = Math.max(1, parseInt(g[1],10));
+    const ci = t.match(/check-?in\s+(\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})/);
+    const co = t.match(/check-?out\s+(\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})/);
+    if (ci) obj.ci = dayjs(ci[1]).format('YYYY-MM-DD');
+    if (co) obj.co = dayjs(co[1]).format('YYYY-MM-DD');
+
+    // attributes
+    const vmap = { valley:'valley', garden:'garden' };
+    for (const k of Object.keys(vmap)){ if (t.includes(k)) obj.view=vmap[k]; }
+    if (t.includes('ac')) obj.ac='true';
+    if (t.includes('non-ac')||t.includes('non ac')) obj.ac='false';
+    if (t.includes('wheelchair')) obj.wheel='true';
+    if (t.includes('pet')) obj.pet='true';
+    return obj;
+  }
+
+  function summarize(d){
+    const parts=[];
+    if (d.memberType) parts.push('Type: '+d.memberType);
+    if (d.guests) parts.push('Guests: '+d.guests);
+    if (d.ci) parts.push('CI: '+d.ci);
+    if (d.co) parts.push('CO: '+d.co);
+    if (d.block) parts.push('Block: '+d.block);
+    if (d.type) parts.push('Room: '+d.type);
+    if (d.view) parts.push('View: '+d.view);
+    if (d.ac) parts.push('AC: '+(d.ac==='true'?'AC':'Non-AC'));
+    if (d.wheel) parts.push('Wheelchair: Yes');
+    if (d.pet) parts.push('Pet: Yes');
+    sum.innerHTML = parts.length ? `<div class="pill">${parts.join('</div><div class="pill">')}</div>` : '<div class="muted">Nothing set.</div>';
+  }
+
+  function passes(r, d){
+    function eq(col,val){ if (!val||!col) return true; const rv=r[col]; if (rv===undefined||rv===null) return false; return (''+rv).toLowerCase()===(''+val).toLowerCase(); }
+    function bool(col,val){ if (!val||!col) return true; const rv=(''+r[col]).toLowerCase(); return (val==='true' ? ['true','1','yes','y'].includes(rv) : ['false','0','no','n'].includes(rv));}
+    return eq(cBlock,d.block)&&eq(cType,d.type)&&eq(cView,d.view)&&eq(cFloor,d.floor)&&eq(cBed,d.bed)
+           && bool(cAC,d.ac) && bool(cWheel,d.wheel) && bool(cPet,d.pet);
+  }
+
+  function suggest(d){
+    const list = ROOMS.filter(r=>passes(r,d));
+    if (!list.length){ suggestWrap.innerHTML = '<div class="muted">No matching rooms.</div>'; return; }
+    const rows = list.slice(0,20).map(r=>{
+      const min = cMin ? (parseInt(r[cMin])||1) : 1;
+      const max = cMax ? (parseInt(r[cMax])||4) : 4;
+      const pills=[];
+      if (cAC) pills.push(`<span class="pill">${r[cAC]?'AC':'Non-AC'}</span>`);
+      if (cView) pills.push(`<span class="pill">${r[cView]}</span>`);
+      if (cFloor) pills.push(`<span class="pill">Floor ${r[cFloor]}</span>`);
+      if (cBed) pills.push(`<span class="pill">${r[cBed]}</span>`);
+      return `<tr>
+        <td>${cBlock?(r[cBlock]||'—'):'—'}</td>
+        <td>${cType?(r[cType]||'—'):'—'}<div class="muted">Min ${min}, Max ${max}</div></td>
+        <td>${pills.filter(x=>x).join(' ')||'—'}</td>
+        <td class="actions"><button class="btn" data-room='${encodeURIComponent(JSON.stringify(r))}'>Use</button></td>
+      </tr>`;
+    }).join('');
+    suggestWrap.innerHTML = `<table class="table">
+      <thead><tr><th>Block/Wing</th><th>Type & Occ.</th><th>Attributes</th><th></th></tr></thead>
+      <tbody>${rows}</tbody></table>`;
+    suggestWrap.querySelectorAll('button[data-room]').forEach(b=>{
+      b.onclick = ()=>{
+        const room = JSON.parse(decodeURIComponent(b.getAttribute('data-room')));
+        const d = JSON.parse(localStorage.getItem('assistantDraft')||'{}');
+        d.room = room;
+        localStorage.setItem('assistantDraft', JSON.stringify(d));
+        say('Selected room: '+(cBlock? room[cBlock]:'')+' '+(cType? room[cType]:''));
+      };
+    });
+  }
+
+  // UI events
+  $('#btnSend').onclick = ()=>{
+    const t = $('#txt').value.trim(); if (!t) return;
+    say(t,'me'); $('#txt').value='';
+    const d = parse(t);
+    const prev = JSON.parse(localStorage.getItem('assistantDraft')||'{}');
+    const merged = Object.assign({}, prev, d);
+    localStorage.setItem('assistantDraft', JSON.stringify(merged));
+    summarize(merged);
+    say('Noted. Click “Suggest Rooms” to see matches or “Apply to App” to send to the wizards.');
+  };
+  $('#btnReset').onclick = ()=>{
+    localStorage.removeItem('assistantDraft'); summarize({}); suggestWrap.innerHTML='';
+    say('Reset.', 'bot');
+  };
+  $('#btnSuggest').onclick = ()=>{
+    const d = Object.assign({ guests:2, memberType:'member' }, JSON.parse(localStorage.getItem('assistantDraft')||'{}'));
+    // also read quick-set controls
+    d.memberType = $('#mType').value;
+    d.guests = Math.max(1, parseInt($('#mGuests').value||'2',10));
+    d.ci = $('#mCI').value || d.ci;
+    d.co = $('#mCO').value || d.co;
+    d.block = $('#aBlock').value || d.block;
+    d.type  = $('#aType').value || d.type;
+    d.view  = $('#aView').value || d.view;
+    d.ac    = $('#aAC').value || d.ac;
+    d.wheel = $('#aWheel').value || d.wheel;
+    d.pet   = $('#aPet').value || d.pet;
+    d.floor = $('#aFloor').value || d.floor;
+    d.bed   = $('#aBed').value || d.bed;
+    localStorage.setItem('assistantDraft', JSON.stringify(d));
+    summarize(d);
+    suggest(d);
+  };
+  $('#btnApply').onclick = ()=>{
+    const d = JSON.parse(localStorage.getItem('assistantDraft')||'{}');
+    // Persist for wizards to consume
+    localStorage.setItem('bookingSelection', JSON.stringify({
+      memberType: d.memberType||'member',
+      guests: d.guests||2,
+      ci: d.ci ? dayjs(d.ci).toISOString() : null,
+      co: d.co ? dayjs(d.co).toISOString() : null,
+      room: d.room || null,
+      filters: {
+        block:d.block||'', type:d.type||'', view:d.view||'',
+        ac:d.ac||'', wheel:d.wheel||'', pet:d.pet||'',
+        floor:d.floor||'', bed:d.bed||''
+      }
+    }));
+    say('Applied to app. You can switch to Wizard A/B to continue.', 'bot');
+  };
+
+  // initial
+  summarize(JSON.parse(localStorage.getItem('assistantDraft')||'{}'));
+  say('Tell me things like “member, 2 guests, check-in 01/11/2025, valley view, AC, wheelchair access”. Then tap Suggest Rooms.');
+})();
+</script>
 </body>
 </html>
