@@ -4,7 +4,28 @@
     "senior":  { "single": 1800, "double": 3200, "triple": 4200, "quad": 4900 },
     "guest":   { "single": 2600, "double": 4200, "triple": 5200, "quad": 5900 }
   },
-  "multipliers": { "weekend": 1.15, "diwali": 1.4, "new_year": 1.5, "regular": 1.0 },
-  "extras": { "extra_bed": 700, "child_5_9": 300, "bbq_pp": 600 },
-  "tax": { "gst_pct": 12 }
+  "multipliers": {
+    "regular": 1.0,
+    "weekend": 1.15,
+    "diwali": 1.4,
+    "new_year": 1.5
+  },
+  "extras": {
+    "extra_bed": 700,
+    "child_5_9": 300,
+    "bbq_pp": 600
+  },
+  "tax": { "gst_pct": 12 },
+  "policy": {
+    "notes": [
+      "If a single guest books a room whose minimum occupancy is 2 or more, apply the single_in_double_factor to the 'double' base price for that guest type.",
+      "If a room has min occupancy = 1 and a single stays, use 'single' base price.",
+      "If guest_count is between min and max, use the base tier matching guest_count (single/double/triple/quad).",
+      "If guest_count exceeds min occupancy and you allow it, add per-extra charges via 'extras.extra_bed' (or set 0 if not used)."
+    ],
+    "single_in_double_factor": 0.8,
+    "per_extra_default": 0,
+    "guest_types": ["member","senior","guest"],
+    "weekend_days": ["Fri","Sat"]
+  }
 }
