@@ -1,0 +1,66 @@
+{
+  "member": {
+    "double": {
+      "regular": 5460,
+      "special": 6552
+    },
+    "single_in_double": {
+      "regular": 4410,
+      "special": 5292
+    },
+    "single_in_single": {
+      "regular": 2730,
+      "special": 3276
+    },
+    "extra_adult_10plus": {
+      "regular": 2170,
+      "special": 2604
+    },
+    "extra_child_5to10": {
+      "regular": 1085,
+      "special": 1302
+    }
+  },
+  "senior_member": {
+    "double": {
+      "regular": 4914,
+      "special": 5896.8
+    },
+    "single_in_double": {
+      "regular": 3969,
+      "special": 4762.8
+    },
+    "single_in_single": {
+      "regular": 2457,
+      "special": 2948.4
+    },
+    "extra_adult_10plus": {
+      "regular": 1953,
+      "special": 2343.6
+    }
+  },
+  "temporary_member": {
+    "double": {
+      "regular": 9930,
+      "special": 11868.8
+    },
+    "single_in_double": {
+      "regular": 8060,
+      "special": 9648.4
+    },
+    "single_in_single": {
+      "regular": 4965,
+      "special": 5934.4
+    },
+    "extra_adult_10plus": {
+      "regular": 3727,
+      "special": 4448.8
+    },
+    "extra_child_5to10": {
+      "regular": 1863.5,
+      "special": 2224.4
+    }
+  },
+  "bbq_per_person_incl_gst": 210,
+  "ac_usage_surcharge_plus_gst": 1000
+}

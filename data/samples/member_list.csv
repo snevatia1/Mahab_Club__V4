@@ -1,0 +1,4 @@
+MemberID,MemberName,Category,Age,Relation,Mobile,Email,IsSenior(65+),DuesStatus(OK/Blocked),Dependents(11-21),MaxWeekdayRooms,MaxWeekendRooms,IntroTemporaryMemberLimit
+MEM0001,Rahul Sharma,Member,45,Self,+91-90000-00001,rahul@example.com,No,OK,1,6,3,3
+MEM0002,Anita Rao,Senior Member,68,Self,+91-90000-00002,anita@example.com,Yes,OK,0,6,3,3
+MEM0003,V. Kapoor,Member,42,Self,+91-90000-00003,vk@example.com,No,Blocked,2,6,3,3

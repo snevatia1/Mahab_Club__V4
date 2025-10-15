@@ -1,0 +1,79 @@
+{
+  "description": "Member list import format for TEST/LIVE. Use this to validate uploads.",
+  "fields": [
+    {
+      "name": "MemberID",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "MemberName",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "Category",
+      "type": "enum",
+      "values": [
+        "Member",
+        "Senior Member",
+        "Temporary Member"
+      ],
+      "required": true
+    },
+    {
+      "name": "Age",
+      "type": "integer"
+    },
+    {
+      "name": "Relation",
+      "type": "enum",
+      "values": [
+        "Self",
+        "Spouse",
+        "Parent",
+        "Child",
+        "Dependent"
+      ]
+    },
+    {
+      "name": "Mobile",
+      "type": "string"
+    },
+    {
+      "name": "Email",
+      "type": "string"
+    },
+    {
+      "name": "IsSenior(65+)",
+      "type": "boolean"
+    },
+    {
+      "name": "DuesStatus(OK/Blocked)",
+      "type": "enum",
+      "values": [
+        "OK",
+        "Blocked"
+      ]
+    },
+    {
+      "name": "Dependents(11-21)",
+      "type": "integer"
+    },
+    {
+      "name": "MaxWeekdayRooms",
+      "type": "integer",
+      "default": 6
+    },
+    {
+      "name": "MaxWeekendRooms",
+      "type": "integer",
+      "default": 3
+    },
+    {
+      "name": "IntroTemporaryMemberLimit",
+      "type": "integer",
+      "default": 3
+    }
+  ]
+}

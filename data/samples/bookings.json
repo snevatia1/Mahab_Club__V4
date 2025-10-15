@@ -1,0 +1,18 @@
+{
+  "schema": "v1",
+  "notes": "Replace with live API/Google Sheet later. This is a placeholder for demos.",
+  "bookings": [
+    {
+      "date": "2025-10-20",
+      "room": "A2",
+      "status": "booked",
+      "by": "MEM123"
+    },
+    {
+      "date": "2025-10-21",
+      "room": "C7",
+      "status": "booked",
+      "by": "MEM124"
+    }
+  ]
+}

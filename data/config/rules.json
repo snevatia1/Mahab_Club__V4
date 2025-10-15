@@ -1,0 +1,56 @@
+{
+  "openDays": 180,
+  "advance_window_days": {
+    "member": 180,
+    "temporary_member": 60
+  },
+  "maxConcurrentBookingsPerMember": 2,
+  "caps": {
+    "weekday_rooms_per_member": 6,
+    "weekend_long_rooms_total": 3,
+    "unaccompanied_tm_rooms_max": 3
+  },
+  "children": {
+    "separate_room_allowed_upto_10": false,
+    "dependents_11_to_21": true
+  },
+  "staff_no_rooms": true,
+  "ac": {
+    "blocks": [
+      "C",
+      "D",
+      "E"
+    ],
+    "surcharge": 1000
+  },
+  "pet_friendly": {
+    "blocks": [
+      "D"
+    ],
+    "rooms": [
+      "C7",
+      "C8",
+      "C9",
+      "C10"
+    ]
+  },
+  "wheelchair_access": [
+    "D",
+    "E",
+    "B1"
+  ],
+  "single_occupancy_rooms": [
+    "A1",
+    "A3",
+    "A7",
+    "A8",
+    "A9",
+    "B9",
+    "C9",
+    "C10",
+    "D1",
+    "D2",
+    "E1",
+    "E2"
+  ]
+}
